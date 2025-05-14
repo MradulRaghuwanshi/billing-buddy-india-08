@@ -1,5 +1,5 @@
 
-import { Indian Rupee, Archive, ShoppingCart, ChartBar } from "lucide-react";
+import { IndianRupee, Archive, ShoppingCart, ChartBar } from "lucide-react";
 import Layout from "@/components/layout/Layout";
 import StatCard from "@/components/dashboard/StatCard";
 import SalesChart from "@/components/dashboard/SalesChart";
@@ -20,7 +20,7 @@ const Dashboard = () => {
           <StatCard
             title="Today's Sales"
             value="₹12,500"
-            icon={<Indian Rupee className="h-5 w-5 text-blue-600" />}
+            icon={<IndianRupee className="h-5 w-5 text-blue-600" />}
             trend="up"
             change={8}
           />
