@@ -4,7 +4,7 @@ import Layout from "@/components/layout/Layout";
 import ProductGrid from "@/components/billing/ProductGrid";
 import BillingSidebar from "@/components/billing/BillingSidebar";
 import { BillItem } from "@/types";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Billing = () => {
   const { toast } = useToast();

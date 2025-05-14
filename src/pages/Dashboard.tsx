@@ -5,7 +5,7 @@ import StatCard from "@/components/dashboard/StatCard";
 import SalesChart from "@/components/dashboard/SalesChart";
 import RecentTransactions from "@/components/dashboard/RecentTransactions";
 import LowStockAlert from "@/components/dashboard/LowStockAlert";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { toast } = useToast();

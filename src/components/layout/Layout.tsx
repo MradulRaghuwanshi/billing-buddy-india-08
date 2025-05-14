@@ -2,7 +2,7 @@
 import { ReactNode, useState } from "react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
-import { useToast } from "@/components/ui/toast";
+import { useToast } from "@/hooks/use-toast";
 
 interface LayoutProps {
   children: ReactNode;
