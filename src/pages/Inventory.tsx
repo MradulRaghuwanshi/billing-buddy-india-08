@@ -1,8 +1,23 @@
 
+import { useEffect } from "react";
+import { useLocation } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import ProductsTable from "@/components/inventory/ProductsTable";
+import { useToast } from "@/hooks/use-toast";
 
 const Inventory = () => {
+  const { state } = useLocation();
+  const { toast } = useToast();
+
+  useEffect(() => {
+    if (state?.filter === "lowStock") {
+      toast({
+        title: "Low Stock Items",
+        description: "Showing products with low inventory levels.",
+      });
+    }
+  }, [state, toast]);
+
   return (
     <Layout>
       <div className="space-y-6">
