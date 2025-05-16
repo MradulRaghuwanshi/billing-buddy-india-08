@@ -1,29 +1,18 @@
 
-import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { mockProducts } from "@/data/mockData";
-import { Button } from "@/components/ui/button";
 
 const LowStockAlert = () => {
-  const navigate = useNavigate();
-  
   // Filter products with low stock (less than 20)
   const lowStockProducts = mockProducts.filter(
     (product) => product.quantity < 20
   ).slice(0, 5);
 
-  const handleViewAllClick = () => {
-    navigate("/inventory", { state: { filter: "lowStock" } });
-  };
-
   return (
-    <Card className="cursor-pointer" onClick={handleViewAllClick}>
+    <Card>
       <CardHeader className="pb-3">
-        <div className="flex justify-between items-center">
-          <CardTitle>Low Stock Alerts</CardTitle>
-          <Button variant="ghost" size="sm">View all</Button>
-        </div>
+        <CardTitle>Low Stock Alerts</CardTitle>
       </CardHeader>
       <CardContent className="px-0">
         {lowStockProducts.length > 0 ? (
