@@ -1,11 +1,13 @@
+
 import { useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { mockProducts } from "@/data/mockData";
 import { BillItem, Product } from "@/types";
-import { Search } from "lucide-react";
+import { Search, Barcode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import BarcodeDialog from "@/components/inventory/BarcodeDialog";
 
 interface ProductGridProps {
   addToCart: (product: BillItem) => void;
@@ -15,6 +17,8 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentCategory, setCurrentCategory] = useState<string | null>(null);
+  const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
+  const [scannedBarcode, setScannedBarcode] = useState("");
 
   // Extract unique categories
   const categories = [...new Set(mockProducts.map((product) => product.category))];
@@ -43,6 +47,35 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
     });
   };
 
+  const handleBarcodeDetected = (barcode: string) => {
+    setScannedBarcode(barcode);
+    
+    // Find product with matching barcode
+    const product = mockProducts.find(p => p.barcode === barcode);
+    
+    if (product) {
+      handleAddToCart(product);
+      
+      // Reset after a short delay
+      setTimeout(() => {
+        setScannedBarcode("");
+        setIsBarcodeDialogOpen(false);
+      }, 1500);
+    } else {
+      toast({
+        title: "Product not found",
+        description: `No product found with barcode ${barcode}`,
+      });
+    }
+  };
+
+  const handleScanBarcode = () => {
+    // Simulate scanning a random barcode from our products list
+    const randomIndex = Math.floor(Math.random() * mockProducts.length);
+    const randomProduct = mockProducts[randomIndex];
+    handleBarcodeDetected(randomProduct.barcode);
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex flex-col sm:flex-row gap-4">
@@ -56,7 +89,13 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
             onChange={(e) => setSearchTerm(e.target.value)}
           />
         </div>
-        <Input type="text" placeholder="Scan barcode..." className="flex-1" />
+        <Button
+          className="flex-shrink-0"
+          onClick={() => setIsBarcodeDialogOpen(true)}
+        >
+          <Barcode className="mr-2 h-4 w-4" />
+          Scan Barcode
+        </Button>
       </div>
 
       <div className="flex overflow-x-auto pb-2 gap-2">
@@ -107,6 +146,14 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
           </Card>
         ))}
       </div>
+
+      <BarcodeDialog
+        isOpen={isBarcodeDialogOpen}
+        onOpenChange={setIsBarcodeDialogOpen}
+        scannedBarcode={scannedBarcode}
+        handleScanBarcode={handleScanBarcode}
+        onBarcodeDetected={handleBarcodeDetected}
+      />
     </div>
   );
 };
