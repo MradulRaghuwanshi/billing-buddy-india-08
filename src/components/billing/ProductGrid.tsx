@@ -59,7 +59,6 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
       // Reset after a short delay
       setTimeout(() => {
         setScannedBarcode("");
-        setIsBarcodeDialogOpen(false);
       }, 1500);
     } else {
       toast({
@@ -67,6 +66,25 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
         description: `No product found with barcode ${barcode}`,
       });
     }
+  };
+
+  const handleMultipleItemsAdd = (products: Product[]) => {
+    products.forEach(product => {
+      const billItem: BillItem = {
+        ...product,
+        quantityInBill: 1,
+        discount: 0,
+        total: product.price
+      };
+      
+      addToCart(billItem);
+    });
+    
+    setIsBarcodeDialogOpen(false);
+    toast({
+      title: "Multiple products added",
+      description: `Added ${products.length} products to the bill.`,
+    });
   };
 
   const handleScanBarcode = () => {
@@ -94,7 +112,7 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
           onClick={() => setIsBarcodeDialogOpen(true)}
         >
           <Barcode className="mr-2 h-4 w-4" />
-          Scan Barcode
+          Scan Products
         </Button>
       </div>
 
@@ -153,6 +171,7 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
         scannedBarcode={scannedBarcode}
         handleScanBarcode={handleScanBarcode}
         onBarcodeDetected={handleBarcodeDetected}
+        onMultipleItemsAdd={handleMultipleItemsAdd}
       />
     </div>
   );

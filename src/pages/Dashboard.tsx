@@ -1,12 +1,11 @@
 
-import { IndianRupee, Archive, ShoppingCart, ChartBar, Search, Package } from "lucide-react";
+import { IndianRupee, Archive, ShoppingCart, ChartBar, Package } from "lucide-react";
 import { useState } from "react";
 import Layout from "@/components/layout/Layout";
 import StatCard from "@/components/dashboard/StatCard";
 import SalesChart from "@/components/dashboard/SalesChart";
 import RecentTransactions from "@/components/dashboard/RecentTransactions";
 import LowStockAlert from "@/components/dashboard/LowStockAlert";
-import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { mockProducts } from "@/data/mockData";
@@ -15,33 +14,15 @@ import { useToast } from "@/hooks/use-toast";
 
 const Dashboard = () => {
   const { toast } = useToast();
-  const [searchTerm, setSearchTerm] = useState("");
   
   // Filter low stock products
-  const lowStockProducts = mockProducts
-    .filter((product) => product.quantity < 20)
-    .filter(
-      (product) =>
-        searchTerm === "" ||
-        product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        product.barcode.toLowerCase().includes(searchTerm.toLowerCase())
-    );
+  const lowStockProducts = mockProducts.filter((product) => product.quantity < 20);
   
   return (
     <Layout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
           <h1 className="text-2xl font-bold">Dashboard</h1>
-          <div className="relative w-full sm:w-auto sm:min-w-[300px]">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-            <Input
-              type="text"
-              placeholder="Search products..."
-              className="pl-9"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-          </div>
         </div>
 
         {/* Low Stock Items Quick View */}

@@ -2,8 +2,11 @@
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Camera, Barcode, RefreshCw } from "lucide-react";
+import { Camera, Barcode, RefreshCw, Plus, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { Card, CardContent } from "@/components/ui/card";
+import { mockProducts } from "@/data/mockData";
+import { Product } from "@/types";
 
 interface BarcodeDialogProps {
   isOpen: boolean;
@@ -11,6 +14,7 @@ interface BarcodeDialogProps {
   scannedBarcode: string;
   handleScanBarcode: () => void;
   onBarcodeDetected?: (barcode: string) => void;
+  onMultipleItemsAdd?: (products: Product[]) => void;
 }
 
 const BarcodeDialog = ({
@@ -19,6 +23,7 @@ const BarcodeDialog = ({
   scannedBarcode,
   handleScanBarcode,
   onBarcodeDetected,
+  onMultipleItemsAdd,
 }: BarcodeDialogProps) => {
   const { toast } = useToast();
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -27,6 +32,8 @@ const BarcodeDialog = ({
   const [hasCamera, setHasCamera] = useState(false);
   const [isBarcodeInput, setIsBarcodeInput] = useState(false);
   const [manualBarcode, setManualBarcode] = useState("");
+  const [scannedItems, setScannedItems] = useState<Product[]>([]);
+  const [continuousScan, setContinuousScan] = useState(false);
 
   // Start video stream when dialog opens
   useEffect(() => {
@@ -111,16 +118,55 @@ const BarcodeDialog = ({
   // Simulate barcode detection (in a real app, use a proper barcode scanning library)
   const simulateBarcodeDetection = () => {
     if (Math.random() > 0.95) { // 5% chance to detect a barcode in this simulation
-      const randomBarcode = Math.floor(100000000000 + Math.random() * 900000000000).toString();
-      handleBarcodeDetected(randomBarcode);
+      // Ensure we don't scan products that are already in the list
+      const availableProducts = mockProducts.filter(
+        product => !scannedItems.some(item => item.id === product.id)
+      );
+      
+      if (availableProducts.length === 0) return;
+      
+      const randomIndex = Math.floor(Math.random() * availableProducts.length);
+      const randomProduct = availableProducts[randomIndex];
+      handleBarcodeDetected(randomProduct.barcode);
     }
   };
 
   // Process detected barcode
   const handleBarcodeDetected = (barcode: string) => {
-    stopVideoStream();
-    if (onBarcodeDetected) {
-      onBarcodeDetected(barcode);
+    if (!continuousScan) {
+      stopVideoStream();
+    }
+    
+    // Find product with matching barcode
+    const product = mockProducts.find(p => p.barcode === barcode);
+    
+    if (product) {
+      // Only add if not already in the list
+      if (!scannedItems.some(item => item.id === product.id)) {
+        setScannedItems([...scannedItems, product]);
+      }
+      
+      toast({
+        title: "Product scanned",
+        description: `${product.name} has been added to your list.`,
+      });
+      
+      if (onBarcodeDetected) {
+        onBarcodeDetected(barcode);
+      }
+      
+      // If not in continuous scan mode, prepare for next scan
+      if (!continuousScan) {
+        setManualBarcode("");
+      } else {
+        // Start scanning again
+        startVideoStream();
+      }
+    } else {
+      toast({
+        title: "Product not found",
+        description: `No product found with barcode ${barcode}`,
+      });
     }
   };
 
@@ -140,37 +186,39 @@ const BarcodeDialog = ({
   const handleRestartScan = () => {
     startVideoStream();
   };
+  
+  // Clear all scanned items
+  const clearScannedItems = () => {
+    setScannedItems([]);
+  };
+  
+  // Remove a single item
+  const removeItem = (productId: string) => {
+    setScannedItems(scannedItems.filter(item => item.id !== productId));
+  };
+  
+  // Add all scanned items
+  const handleAddAllItems = () => {
+    if (onMultipleItemsAdd && scannedItems.length > 0) {
+      onMultipleItemsAdd(scannedItems);
+      toast({
+        title: "Items added",
+        description: `Added ${scannedItems.length} items to cart.`,
+      });
+      setScannedItems([]);
+      onOpenChange(false);
+    }
+  };
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[425px]">
+      <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
           <DialogTitle>Scan Barcode</DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col items-center justify-center py-4 space-y-4">
-          {scannedBarcode ? (
-            <div className="flex flex-col items-center space-y-2">
-              <div className="w-64 h-16 border-2 border-gray-300 flex items-center justify-center">
-                <p className="font-mono text-lg">{scannedBarcode}</p>
-              </div>
-              <p className="text-sm text-muted-foreground">Barcode detected</p>
-            </div>
-          ) : isBarcodeInput ? (
-            <div className="w-full space-y-4">
-              <input
-                type="text"
-                className="w-full border-2 border-gray-300 rounded p-2 font-mono text-center"
-                placeholder="Enter barcode manually"
-                value={manualBarcode}
-                onChange={(e) => setManualBarcode(e.target.value)}
-                autoFocus
-              />
-              <div className="flex justify-center space-x-2">
-                <Button onClick={handleManualBarcodeSubmit}>Submit</Button>
-                <Button variant="outline" onClick={() => setIsBarcodeInput(false)}>Cancel</Button>
-              </div>
-            </div>
-          ) : hasCamera ? (
+        <div className="flex flex-col space-y-4">
+          {/* Scanning UI */}
+          {!isBarcodeInput && hasCamera && !scannedBarcode && (
             <div className="relative w-full flex flex-col items-center">
               <div className="relative rounded-lg overflow-hidden border-2 border-gray-300" style={{ width: "280px", height: "210px" }}>
                 <video 
@@ -189,7 +237,28 @@ const BarcodeDialog = ({
                 Position barcode within the box
               </p>
             </div>
-          ) : (
+          )}
+          
+          {/* Manual input UI */}
+          {isBarcodeInput && (
+            <div className="w-full space-y-4">
+              <input
+                type="text"
+                className="w-full border-2 border-gray-300 rounded p-2 font-mono text-center"
+                placeholder="Enter barcode manually"
+                value={manualBarcode}
+                onChange={(e) => setManualBarcode(e.target.value)}
+                autoFocus
+              />
+              <div className="flex justify-center space-x-2">
+                <Button onClick={handleManualBarcodeSubmit}>Submit</Button>
+                <Button variant="outline" onClick={() => setIsBarcodeInput(false)}>Cancel</Button>
+              </div>
+            </div>
+          )}
+          
+          {/* No camera fallback UI */}
+          {!hasCamera && !isBarcodeInput && !scannedBarcode && (
             <div className="flex flex-col items-center space-y-6">
               <Barcode className="h-16 w-16 text-muted-foreground" />
               <p className="text-sm text-muted-foreground text-center">
@@ -197,32 +266,93 @@ const BarcodeDialog = ({
               </p>
             </div>
           )}
-        </div>
-        <DialogFooter className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
-          {!scannedBarcode && (
-            <>
-              {!isBarcodeInput && !isScanning && (
-                <Button onClick={handleRestartScan} className="w-full sm:w-auto">
-                  <Camera className="mr-2 h-4 w-4" /> Access Camera
-                </Button>
-              )}
-              {hasCamera && isScanning && (
-                <Button onClick={() => stopVideoStream()} variant="outline" className="w-full sm:w-auto">
-                  <RefreshCw className="mr-2 h-4 w-4" /> Reset Scanner
-                </Button>
-              )}
-              <Button 
-                onClick={() => setIsBarcodeInput(!isBarcodeInput)} 
-                variant={isBarcodeInput ? "default" : "outline"}
-                className="w-full sm:w-auto"
-              >
-                {isBarcodeInput ? "Cancel" : "Enter Manually"}
-              </Button>
-              <Button onClick={handleScanBarcode} className="w-full sm:w-auto">
-                Simulate Scan
-              </Button>
-            </>
+          
+          {/* Scanned items list */}
+          {scannedItems.length > 0 && (
+            <Card>
+              <CardContent className="p-4">
+                <div className="flex justify-between items-center mb-2">
+                  <h3 className="font-medium">Scanned Items ({scannedItems.length})</h3>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 px-2" 
+                    onClick={clearScannedItems}
+                  >
+                    Clear All
+                  </Button>
+                </div>
+                <div className="max-h-40 overflow-y-auto space-y-2">
+                  {scannedItems.map(item => (
+                    <div 
+                      key={item.id} 
+                      className="flex justify-between items-center p-2 border rounded-md"
+                    >
+                      <div>
+                        <p className="font-medium text-sm">{item.name}</p>
+                        <p className="text-xs text-gray-500">₹{item.price}</p>
+                      </div>
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="h-6 w-6 p-0" 
+                        onClick={() => removeItem(item.id)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ))}
+                </div>
+              </CardContent>
+            </Card>
           )}
+          
+          {/* Continuous scan toggle */}
+          <div className="flex items-center space-x-2">
+            <input 
+              type="checkbox" 
+              id="continuous-scan" 
+              checked={continuousScan} 
+              onChange={() => setContinuousScan(!continuousScan)} 
+              className="rounded border-gray-300"
+            />
+            <label htmlFor="continuous-scan" className="text-sm">
+              Enable continuous scanning mode
+            </label>
+          </div>
+        </div>
+        
+        <DialogFooter className="flex flex-col sm:flex-row sm:space-x-2 space-y-2 sm:space-y-0">
+          {scannedItems.length > 0 && (
+            <Button onClick={handleAddAllItems} className="w-full sm:w-auto">
+              <Plus className="mr-2 h-4 w-4" /> 
+              Add {scannedItems.length} {scannedItems.length === 1 ? 'Item' : 'Items'}
+            </Button>
+          )}
+          
+          {!isBarcodeInput && !isScanning && (
+            <Button onClick={handleRestartScan} className="w-full sm:w-auto">
+              <Camera className="mr-2 h-4 w-4" /> Access Camera
+            </Button>
+          )}
+          
+          {hasCamera && isScanning && (
+            <Button onClick={() => stopVideoStream()} variant="outline" className="w-full sm:w-auto">
+              <RefreshCw className="mr-2 h-4 w-4" /> Reset Scanner
+            </Button>
+          )}
+          
+          <Button 
+            onClick={() => setIsBarcodeInput(!isBarcodeInput)} 
+            variant={isBarcodeInput ? "default" : "outline"}
+            className="w-full sm:w-auto"
+          >
+            {isBarcodeInput ? "Cancel" : "Enter Manually"}
+          </Button>
+          
+          <Button onClick={handleScanBarcode} className="w-full sm:w-auto">
+            Simulate Scan
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
