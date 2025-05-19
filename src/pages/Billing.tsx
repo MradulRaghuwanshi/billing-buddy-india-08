@@ -46,7 +46,7 @@ const Billing = () => {
             <h1 className="text-2xl font-bold">Billing</h1>
             <p className="text-gray-500">Create a new bill by adding products</p>
           </div>
-          <ProductGrid addToCart={addToCart} />
+          <ProductGrid addToCart={addToCart} cart={cart} />
         </div>
         
         <div className="w-full lg:w-96 border-t lg:border-t-0">

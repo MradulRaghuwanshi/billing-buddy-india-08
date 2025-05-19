@@ -11,9 +11,10 @@ import BarcodeDialog from "@/components/inventory/BarcodeDialog";
 
 interface ProductGridProps {
   addToCart: (product: BillItem) => void;
+  cart: BillItem[]; // Add cart prop to know which items are in the bill
 }
 
-const ProductGrid = ({ addToCart }: ProductGridProps) => {
+const ProductGrid = ({ addToCart, cart }: ProductGridProps) => {
   const { toast } = useToast();
   const [searchTerm, setSearchTerm] = useState("");
   const [currentCategory, setCurrentCategory] = useState<string | null>(null);
@@ -31,6 +32,11 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
         product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         product.barcode.toLowerCase().includes(searchTerm.toLowerCase()))
   );
+
+  // Function to check if a product is in the cart
+  const isProductInCart = (productId: string): boolean => {
+    return cart.some(item => item.id === productId);
+  };
 
   const handleAddToCart = (product: Product) => {
     const billItem: BillItem = {
@@ -140,7 +146,11 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
         {filteredProducts.map((product) => (
           <Card
             key={product.id}
-            className="p-4 cursor-pointer hover:shadow-md transition-shadow"
+            className={`p-4 cursor-pointer hover:shadow-md transition-all ${
+              isProductInCart(product.id) 
+                ? "bg-blue-50 border-blue-300" 
+                : ""
+            }`}
             onClick={() => handleAddToCart(product)}
           >
             <div className="text-left">
@@ -160,6 +170,13 @@ const ProductGrid = ({ addToCart }: ProductGridProps) => {
                   {product.quantity} in stock
                 </span>
               </div>
+              {isProductInCart(product.id) && (
+                <div className="mt-2 text-center">
+                  <span className="bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full">
+                    In Bill ({cart.find(item => item.id === product.id)?.quantityInBill || 0})
+                  </span>
+                </div>
+              )}
             </div>
           </Card>
         ))}
