@@ -2,7 +2,7 @@
 import Layout from "@/components/layout/Layout";
 import ProductsTable from "@/components/inventory/ProductsTable";
 import { Button } from "@/components/ui/button";
-import { Barcode, Plus } from "lucide-react";
+import { ScanBarcode, Plus } from "lucide-react";
 import { useState } from "react";
 import BarcodeDialog from "@/components/inventory/BarcodeDialog";
 import { mockProducts } from "@/data/mockData";
@@ -48,7 +48,7 @@ const Inventory = () => {
               className="flex items-center gap-1"
               onClick={() => setIsBarcodeDialogOpen(true)}
             >
-              <Barcode className="h-4 w-4" />
+              <ScanBarcode className="h-4 w-4" />
               Scan Barcode
             </Button>
           </div>

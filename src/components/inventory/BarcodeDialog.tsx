@@ -2,7 +2,7 @@
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Camera, Barcode, RefreshCw, Plus, X } from "lucide-react";
+import { Camera, Barcode, RefreshCw, Plus, X, ScanBarcode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
 import { mockProducts } from "@/data/mockData";
@@ -51,7 +51,8 @@ const BarcodeDialog = ({
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [isScanning, setIsScanning] = useState(false);
-  const [hasCamera, setHasCamera] = useState(false);
+  const [hasCamera, setHasCamera] = useState(true);
+  const [isCameraInitializing, setIsCameraInitializing] = useState(false);
   const [isBarcodeInput, setIsBarcodeInput] = useState(false);
   const [manualBarcode, setManualBarcode] = useState("");
   const [scannedItems, setScannedItems] = useState<Product[]>([]);
@@ -64,14 +65,15 @@ const BarcodeDialog = ({
   
   // Start video stream when dialog opens
   useEffect(() => {
-    if (isOpen && !scannedBarcode && !scannedProductInfo) {
+    if (isOpen && !scannedBarcode && !scannedProductInfo && !isBarcodeInput) {
       startVideoStream();
     }
     
+    // Cleanup function
     return () => {
       stopVideoStream();
     };
-  }, [isOpen, scannedBarcode, scannedProductInfo]);
+  }, [isOpen, scannedBarcode, scannedProductInfo, isBarcodeInput]);
 
   // Initialize barcode detection
   useEffect(() => {
@@ -108,27 +110,43 @@ const BarcodeDialog = ({
 
   // Start camera stream
   const startVideoStream = async () => {
+    if (isCameraInitializing) return;
+    
+    setIsCameraInitializing(true);
+    
     try {
       const constraints = {
         video: {
           facingMode: "environment",
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
         },
+        audio: false
       };
+      
+      // Reset hasCamera state before attempting to access
+      setHasCamera(true);
       
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
+        videoRef.current.onloadedmetadata = () => {
+          if (videoRef.current) {
+            videoRef.current.play().catch(e => console.error("Error playing video:", e));
+          }
+        };
         setIsScanning(true);
-        setHasCamera(true);
       }
     } catch (error) {
       console.error("Error accessing camera:", error);
       setHasCamera(false);
       toast({
         title: "Camera access failed",
-        description: "Could not access camera. Make sure you've granted permission.",
+        description: "Could not access camera. Make sure you've granted permission and are using a secure connection (HTTPS).",
       });
+    } finally {
+      setIsCameraInitializing(false);
     }
   };
 
@@ -291,7 +309,7 @@ const BarcodeDialog = ({
 
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px]">
+      <DialogContent className="sm:max-w-[500px] overflow-y-auto max-h-[85vh]">
         <DialogHeader>
           <DialogTitle>Barcode Scanner</DialogTitle>
           <DialogDescription>
@@ -301,24 +319,33 @@ const BarcodeDialog = ({
         
         <div className="flex flex-col space-y-4">
           {/* Scanning UI */}
-          {!isBarcodeInput && hasCamera && !scannedBarcode && !scannedProductInfo && (
+          {!isBarcodeInput && hasCamera && !scannedProductInfo && (
             <div className="relative w-full flex flex-col items-center">
-              <div className="relative rounded-lg overflow-hidden border-2 border-gray-300" style={{ width: "280px", height: "210px" }}>
-                <video 
-                  ref={videoRef}
-                  className="absolute top-0 left-0 w-full h-full object-cover"
-                  autoPlay
-                  playsInline
-                  muted
-                />
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <div className="border-2 border-primary w-64 h-16 opacity-50"></div>
+              {isCameraInitializing ? (
+                <div className="flex flex-col items-center justify-center h-40">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
+                  <p className="mt-2 text-sm text-muted-foreground">Initializing camera...</p>
                 </div>
-                <canvas ref={canvasRef} className="hidden" />
-              </div>
-              <p className="text-sm text-muted-foreground mt-2">
-                Position barcode within the box
-              </p>
+              ) : (
+                <>
+                  <div className="relative rounded-lg overflow-hidden border-2 border-primary bg-black" style={{ width: "100%", height: "250px" }}>
+                    <video 
+                      ref={videoRef}
+                      className="absolute top-0 left-0 w-full h-full object-cover"
+                      autoPlay
+                      playsInline
+                      muted
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="border-2 border-red-500 w-64 h-16 opacity-70"></div>
+                    </div>
+                    <canvas ref={canvasRef} className="hidden" />
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Position barcode within the red box
+                  </p>
+                </>
+              )}
             </div>
           )}
           
@@ -415,12 +442,29 @@ const BarcodeDialog = ({
           )}
           
           {/* No camera fallback UI */}
-          {!hasCamera && !isBarcodeInput && !scannedBarcode && !scannedProductInfo && (
-            <div className="flex flex-col items-center space-y-6">
-              <Barcode className="h-16 w-16 text-muted-foreground" />
-              <p className="text-sm text-muted-foreground text-center">
-                Camera access not available.<br />Enter barcode manually or try again.
-              </p>
+          {!hasCamera && !isBarcodeInput && !scannedProductInfo && (
+            <div className="flex flex-col items-center space-y-6 p-4">
+              <ScanBarcode className="h-16 w-16 text-muted-foreground" />
+              <div className="text-sm text-center space-y-4">
+                <p className="text-muted-foreground">
+                  Camera access not available or permission denied.
+                </p>
+                <p>Please check:</p>
+                <ul className="list-disc text-left ml-4">
+                  <li>You've granted camera permission in your browser</li>
+                  <li>You're using a secure connection (HTTPS)</li>
+                  <li>Your device has a working camera</li>
+                </ul>
+                <p className="pt-2">You can try again or enter barcode manually.</p>
+              </div>
+              <div className="flex space-x-2">
+                <Button onClick={() => startVideoStream()}>
+                  <Camera className="mr-2 h-4 w-4" /> Try Again
+                </Button>
+                <Button variant="outline" onClick={() => setIsBarcodeInput(true)}>
+                  Enter Manually
+                </Button>
+              </div>
             </div>
           )}
           
@@ -493,7 +537,7 @@ const BarcodeDialog = ({
             </Button>
           )}
           
-          {!isBarcodeInput && !isScanning && !scannedProductInfo && (
+          {!isBarcodeInput && !isScanning && !scannedProductInfo && hasCamera && (
             <Button onClick={handleRestartScan} className="w-full sm:w-auto">
               <Camera className="mr-2 h-4 w-4" /> Access Camera
             </Button>
@@ -509,6 +553,9 @@ const BarcodeDialog = ({
             onClick={() => {
               if (!scannedProductInfo) {
                 setIsBarcodeInput(!isBarcodeInput);
+                if (isScanning) {
+                  stopVideoStream();
+                }
               }
             }} 
             variant={isBarcodeInput ? "default" : "outline"}
