@@ -1,14 +1,19 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
-import { Camera, Barcode, RefreshCw, Plus, X, ScanBarcode } from "lucide-react";
+import { Camera, Plus, ScanBarcode } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Card, CardContent } from "@/components/ui/card";
 import { mockProducts } from "@/data/mockData";
 import { Product } from "@/types";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { v4 as uuidv4 } from "uuid";
+
+// Import our new components
+import ScannerView from "./barcode/ScannerView";
+import ManualBarcodeInput from "./barcode/ManualBarcodeInput";
+import CameraErrorView from "./barcode/CameraErrorView";
+import ProductDetailsForm from "./barcode/ProductDetailsForm";
+import ScannedItemsList from "./barcode/ScannedItemsList";
+import { ScannedProductInfo } from "./barcode/types";
 
 interface BarcodeDialogProps {
   isOpen: boolean;
@@ -19,25 +24,6 @@ interface BarcodeDialogProps {
   onMultipleItemsAdd?: (products: Product[]) => void;
 }
 
-interface ScannedProductInfo {
-  barcode: string;
-  name: string;
-  price: number;
-  expiryDate?: string;
-}
-
-const categories = [
-  "Grocery",
-  "Dairy",
-  "Beverages",
-  "Snacks",
-  "Personal Care",
-  "Household",
-  "Fruits & Vegetables",
-  "Bakery",
-  "Others"
-];
-
 const BarcodeDialog = ({
   isOpen,
   onOpenChange,
@@ -47,171 +33,37 @@ const BarcodeDialog = ({
   onMultipleItemsAdd,
 }: BarcodeDialogProps) => {
   const { toast } = useToast();
-  const videoRef = useRef<HTMLVideoElement>(null);
-  const canvasRef = useRef<HTMLCanvasElement>(null);
-  const [isScanning, setIsScanning] = useState(false);
   const [hasCamera, setHasCamera] = useState(true);
-  const [isCameraInitializing, setIsCameraInitializing] = useState(false);
   const [isBarcodeInput, setIsBarcodeInput] = useState(false);
-  const [manualBarcode, setManualBarcode] = useState("");
   const [scannedItems, setScannedItems] = useState<Product[]>([]);
   const [continuousScan, setContinuousScan] = useState(false);
-  const [scanAttempts, setScanAttempts] = useState(0); // Track scan attempts
   
-  // New state for scanned product info and form inputs
+  // State for scanned product info and form inputs
   const [scannedProductInfo, setScannedProductInfo] = useState<ScannedProductInfo | null>(null);
   const [category, setCategory] = useState<string>("");
   const [quantity, setQuantity] = useState<string>("1");
   
-  // Start video stream when dialog opens
+  // Reset state when dialog closes
+  useEffect(() => {
+    if (!isOpen) {
+      setIsBarcodeInput(false);
+      setScannedProductInfo(null);
+      setCategory("");
+      setQuantity("1");
+      // Keep scanned items in case the user wants to add them later
+    }
+  }, [isOpen]);
+  
+  // Determine what to show when dialog opens
   useEffect(() => {
     if (isOpen && !scannedBarcode && !scannedProductInfo && !isBarcodeInput) {
-      startVideoStream();
+      // Dialog opened without any existing barcode or manual input mode
+      // The ScannerView component will start automatically
     }
-    
-    // Cleanup function
-    return () => {
-      stopVideoStream();
-    };
   }, [isOpen, scannedBarcode, scannedProductInfo, isBarcodeInput]);
 
-  // Initialize barcode detection with more frequent scanning
-  useEffect(() => {
-    let scanInterval: number;
-    
-    if (isScanning && videoRef.current && canvasRef.current) {
-      // Scan more frequently to improve detection chances
-      scanInterval = window.setInterval(() => {
-        try {
-          const video = videoRef.current;
-          const canvas = canvasRef.current;
-          
-          if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
-            const ctx = canvas.getContext('2d');
-            if (ctx) {
-              // Set canvas dimensions to match video feed
-              canvas.height = video.videoHeight;
-              canvas.width = video.videoWidth;
-              
-              // Draw the video feed on the canvas
-              ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-              
-              // Display the canvas containing the video feed
-              canvas.style.display = 'block';
-              
-              // In a real implementation, we would use a barcode scanning library
-              // For now, we'll improve the simulation to be more reliable
-              if (scanAttempts < 30) { // Limit scan attempts to prevent excessive simulation
-                simulateBarcodeScanning();
-                setScanAttempts(prev => prev + 1);
-              }
-            }
-          }
-        } catch (error) {
-          console.error("Error during barcode scanning:", error);
-        }
-      }, 200); // Scan more frequently (5 times per second)
-    }
-    
-    return () => {
-      if (scanInterval) clearInterval(scanInterval);
-    };
-  }, [isScanning, scanAttempts]);
-
-  // Reset scan attempts when starting a new scan
-  useEffect(() => {
-    if (isScanning) {
-      setScanAttempts(0);
-    }
-  }, [isScanning]);
-
-  // Start camera stream with improved error handling and display setup
-  const startVideoStream = async () => {
-    if (isCameraInitializing) return;
-    
-    setIsCameraInitializing(true);
-    
-    try {
-      const constraints = {
-        video: {
-          facingMode: "environment", // Use the rear camera on mobile devices
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        },
-        audio: false
-      };
-      
-      // Reset hasCamera state before attempting to access
-      setHasCamera(true);
-      
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      
-      if (videoRef.current) {
-        videoRef.current.srcObject = stream;
-        videoRef.current.onloadedmetadata = () => {
-          if (videoRef.current) {
-            videoRef.current.play()
-              .then(() => {
-                console.log("Camera started successfully");
-                // Make video visible and ensure it's properly displayed
-                if (videoRef.current) {
-                  videoRef.current.style.display = 'block';
-                  videoRef.current.style.width = '100%';
-                }
-                setIsScanning(true);
-              })
-              .catch(e => {
-                console.error("Error playing video:", e);
-                toast({
-                  title: "Camera error",
-                  description: "Could not start video stream. Please try again.",
-                });
-              });
-          }
-        };
-      }
-    } catch (error) {
-      console.error("Error accessing camera:", error);
-      setHasCamera(false);
-      
-      toast({
-        title: "Camera access failed",
-        description: "Could not access camera. Please check camera permissions in your browser settings and ensure you're using HTTPS.",
-      });
-    } finally {
-      setIsCameraInitializing(false);
-    }
-  };
-
-  // Stop video stream with improved cleanup
-  const stopVideoStream = () => {
-    if (videoRef.current && videoRef.current.srcObject) {
-      const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
-      tracks.forEach(track => track.stop());
-      videoRef.current.srcObject = null;
-    }
-    setIsScanning(false);
-  };
-
-  // Improved barcode simulation with better detection rates
-  const simulateBarcodeScanning = () => {
-    // Increase detection probability based on scan attempts
-    const detectionProbability = Math.min(0.1 + (scanAttempts * 0.02), 0.5);
-    
-    if (Math.random() < detectionProbability) { 
-      // Get a random product from mock data for simulation
-      const randomProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
-      handleBarcodeScanned(randomProduct.barcode);
-      
-      // Reset scan attempts after successful detection
-      setScanAttempts(0);
-    }
-  };
-
-  // Process scanned barcode with improved product detection
+  // Process scanned barcode
   const handleBarcodeScanned = (barcode: string) => {
-    stopVideoStream();
-    
     // Find product with matching barcode
     const product = mockProducts.find(p => p.barcode === barcode);
     
@@ -253,19 +105,6 @@ const BarcodeDialog = ({
     }
   };
 
-  // Handle manual barcode input
-  const handleManualBarcodeSubmit = () => {
-    if (manualBarcode.trim().length >= 8) {
-      handleBarcodeScanned(manualBarcode.trim());
-      setManualBarcode("");
-    } else {
-      toast({
-        title: "Invalid barcode",
-        description: "Please enter a valid barcode number (at least 8 digits)",
-      });
-    }
-  };
-
   // Handle form submission to add product with category and quantity
   const handleAddProduct = () => {
     if (!scannedProductInfo) return;
@@ -287,7 +126,7 @@ const BarcodeDialog = ({
     }
     
     const newProduct: Product = {
-      id: `prod_${scannedProductInfo.barcode}`,
+      id: `prod_${uuidv4()}`,
       name: scannedProductInfo.name,
       barcode: scannedProductInfo.barcode,
       category: category,
@@ -313,15 +152,14 @@ const BarcodeDialog = ({
     
     // If continuous scan is enabled, start scanning again
     if (continuousScan) {
-      startVideoStream();
+      setIsBarcodeInput(false); // Ensure we're in scanning mode
     }
   };
 
   // Handle restart scanning
   const handleRestartScan = () => {
     setScannedProductInfo(null);
-    setScanAttempts(0); // Reset scan attempts
-    startVideoStream();
+    setIsBarcodeInput(false);
   };
   
   // Clear all scanned items
@@ -347,6 +185,19 @@ const BarcodeDialog = ({
     }
   };
 
+  const handleStartScanning = () => {
+    // Camera access successful, ensure camera state is correct
+    setHasCamera(true);
+  };
+
+  const handleStopScanning = () => {
+    // Camera stopped, nothing special to do
+  };
+
+  const handleCameraError = () => {
+    setHasCamera(false);
+  };
+
   return (
     <Dialog open={isOpen} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px] overflow-y-auto max-h-[85vh]">
@@ -358,225 +209,50 @@ const BarcodeDialog = ({
         </DialogHeader>
         
         <div className="flex flex-col space-y-4">
-          {/* Camera UI with improved visibility and alignment guide */}
+          {/* Choose which component to show based on the state */}
           {!isBarcodeInput && hasCamera && !scannedProductInfo && (
-            <div className="relative w-full flex flex-col items-center">
-              {isCameraInitializing ? (
-                <div className="flex flex-col items-center justify-center h-40">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
-                  <p className="mt-2 text-sm text-muted-foreground">Initializing camera...</p>
-                </div>
-              ) : (
-                <>
-                  <div className="relative rounded-lg overflow-hidden border-2 border-primary bg-black" style={{ width: "100%", height: "300px" }}>
-                    <video 
-                      ref={videoRef}
-                      className="absolute top-0 left-0 w-full h-full object-cover z-10"
-                      autoPlay
-                      playsInline
-                      muted
-                    />
-                    {/* Visible canvas that shows the camera feed for processing */}
-                    <canvas 
-                      ref={canvasRef} 
-                      className="absolute top-0 left-0 w-full h-full object-cover z-20"
-                      style={{ display: "block" }} 
-                    />
-                    {/* Improved alignment guide with better contrast */}
-                    <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
-                      {/* Horizontal alignment line */}
-                      <div className="absolute left-0 right-0 h-0.5 bg-red-600"></div>
-                      {/* Vertical alignment line */}
-                      <div className="absolute top-0 bottom-0 w-0.5 bg-red-600"></div>
-                      {/* Scanning target box with high contrast */}
-                      <div className="border-2 border-red-600 w-64 h-16 opacity-80 relative">
-                        {/* Corner brackets for better alignment guidance */}
-                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-red-600"></div>
-                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-red-600"></div>
-                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-red-600"></div>
-                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-red-600"></div>
-                      </div>
-                    </div>
-                    <div className="absolute bottom-2 left-0 right-0 text-center z-40">
-                      <span className="bg-black bg-opacity-70 text-white px-2 py-1 rounded text-sm">
-                        Align barcode within the red box {scanAttempts > 0 ? `(${scanAttempts})` : ''}
-                      </span>
-                    </div>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Position barcode within the red box and hold steady
-                  </p>
-                </>
-              )}
-            </div>
+            <ScannerView 
+              onBarcodeDetected={handleBarcodeScanned}
+              onStartScanning={handleStartScanning}
+              onStopScanning={handleStopScanning}
+            />
           )}
 
           {/* Product info form */}
           {scannedProductInfo && (
-            <div className="border rounded-lg p-4 space-y-4">
-              <h3 className="font-medium text-lg">Scanned Product Details</h3>
-              
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Barcode:</span>
-                  <span className="font-mono">{scannedProductInfo.barcode}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Name:</span>
-                  <span>{scannedProductInfo.name}</span>
-                </div>
-                
-                <div className="flex items-center justify-between">
-                  <span className="font-medium">Price:</span>
-                  <span>₹{scannedProductInfo.price.toFixed(2)}</span>
-                </div>
-                
-                {scannedProductInfo.expiryDate && (
-                  <div className="flex items-center justify-between">
-                    <span className="font-medium">Expires:</span>
-                    <span>{new Date(scannedProductInfo.expiryDate).toLocaleDateString('en-IN')}</span>
-                  </div>
-                )}
-                
-                <div className="pt-2 space-y-3">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="category" className="text-right">
-                      Category
-                    </Label>
-                    <Select value={category} onValueChange={setCategory}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Select category" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map((cat) => (
-                          <SelectItem key={cat} value={cat}>
-                            {cat}
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="quantity" className="text-right">
-                      Quantity
-                    </Label>
-                    <Input
-                      id="quantity"
-                      type="number"
-                      value={quantity}
-                      onChange={(e) => setQuantity(e.target.value)}
-                      className="col-span-3"
-                      min="1"
-                    />
-                  </div>
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-2 pt-2">
-                <Button variant="outline" onClick={handleRestartScan}>
-                  <RefreshCw className="mr-2 h-4 w-4" /> Scan Another
-                </Button>
-                <Button onClick={handleAddProduct}>
-                  <Plus className="mr-2 h-4 w-4" /> Add Product
-                </Button>
-              </div>
-            </div>
+            <ProductDetailsForm 
+              scannedProductInfo={scannedProductInfo}
+              category={category}
+              setCategory={setCategory}
+              quantity={quantity}
+              setQuantity={setQuantity}
+              onAddProduct={handleAddProduct}
+              onRestartScan={handleRestartScan}
+            />
           )}
           
           {/* Manual input UI */}
           {isBarcodeInput && (
-            <div className="w-full space-y-4">
-              <Input
-                type="text"
-                className="w-full border-2 border-gray-300 rounded p-2 font-mono text-center"
-                placeholder="Enter barcode manually"
-                value={manualBarcode}
-                onChange={(e) => setManualBarcode(e.target.value)}
-                autoFocus
-              />
-              <div className="flex justify-center space-x-2">
-                <Button onClick={handleManualBarcodeSubmit}>Submit</Button>
-                <Button variant="outline" onClick={() => setIsBarcodeInput(false)}>Cancel</Button>
-              </div>
-            </div>
+            <ManualBarcodeInput 
+              onBarcodeDetected={handleBarcodeScanned}
+              onCancel={() => setIsBarcodeInput(false)} 
+            />
           )}
           
-          {/* No camera fallback UI with better guidance */}
+          {/* No camera fallback UI */}
           {!hasCamera && !isBarcodeInput && !scannedProductInfo && (
-            <div className="flex flex-col items-center space-y-6 p-4">
-              <ScanBarcode className="h-16 w-16 text-muted-foreground" />
-              <div className="text-sm text-center space-y-4">
-                <p className="text-muted-foreground">
-                  Camera access not available or permission denied.
-                </p>
-                <p>Please check:</p>
-                <ul className="list-disc text-left ml-4">
-                  <li>You've granted camera permission in your browser</li>
-                  <li>You're using a secure connection (HTTPS)</li>
-                  <li>Your device has a working camera</li>
-                  <li>No other application is currently using the camera</li>
-                  <li>Try refreshing the page or reopening the browser</li>
-                </ul>
-                <p className="pt-2">You can try again or enter barcode manually.</p>
-              </div>
-              <div className="flex space-x-2">
-                <Button onClick={() => startVideoStream()}>
-                  <Camera className="mr-2 h-4 w-4" /> Try Again
-                </Button>
-                <Button variant="outline" onClick={() => setIsBarcodeInput(true)}>
-                  Enter Manually
-                </Button>
-              </div>
-            </div>
+            <CameraErrorView 
+              onRetry={() => setHasCamera(true)}
+              onEnterManually={() => setIsBarcodeInput(true)}
+            />
           )}
           
           {/* Scanned items list */}
-          {scannedItems.length > 0 && (
-            <Card>
-              <CardContent className="p-4">
-                <div className="flex justify-between items-center mb-2">
-                  <h3 className="font-medium">Scanned Items ({scannedItems.length})</h3>
-                  <Button 
-                    variant="ghost" 
-                    size="sm" 
-                    className="h-8 px-2" 
-                    onClick={clearScannedItems}
-                  >
-                    Clear All
-                  </Button>
-                </div>
-                <div className="max-h-40 overflow-y-auto space-y-2">
-                  {scannedItems.map(item => (
-                    <div 
-                      key={item.id} 
-                      className="flex justify-between items-center p-2 border rounded-md"
-                    >
-                      <div>
-                        <p className="font-medium text-sm">{item.name}</p>
-                        <div className="flex space-x-2 text-xs text-gray-500">
-                          <span>₹{item.price}</span>
-                          <span>•</span>
-                          <span>Qty: {item.quantity}</span>
-                          <span>•</span>
-                          <span>{item.category}</span>
-                        </div>
-                      </div>
-                      <Button 
-                        variant="ghost" 
-                        size="sm" 
-                        className="h-6 w-6 p-0" 
-                        onClick={() => removeItem(item.id)}
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
-          )}
+          <ScannedItemsList 
+            scannedItems={scannedItems}
+            onClearAll={clearScannedItems}
+            onRemoveItem={removeItem}
+          />
           
           {/* Continuous scan toggle */}
           <div className="flex items-center space-x-2">
@@ -601,15 +277,9 @@ const BarcodeDialog = ({
             </Button>
           )}
           
-          {!isBarcodeInput && !isScanning && !scannedProductInfo && hasCamera && (
-            <Button onClick={handleRestartScan} className="w-full sm:w-auto">
+          {!isBarcodeInput && !hasCamera && !scannedProductInfo && (
+            <Button onClick={() => setHasCamera(true)} className="w-full sm:w-auto">
               <Camera className="mr-2 h-4 w-4" /> Access Camera
-            </Button>
-          )}
-          
-          {hasCamera && isScanning && !scannedProductInfo && (
-            <Button onClick={() => stopVideoStream()} variant="outline" className="w-full sm:w-auto">
-              <RefreshCw className="mr-2 h-4 w-4" /> Reset Scanner
             </Button>
           )}
           
@@ -617,9 +287,6 @@ const BarcodeDialog = ({
             onClick={() => {
               if (!scannedProductInfo) {
                 setIsBarcodeInput(!isBarcodeInput);
-                if (isScanning) {
-                  stopVideoStream();
-                }
               }
             }} 
             variant={isBarcodeInput ? "default" : "outline"}
