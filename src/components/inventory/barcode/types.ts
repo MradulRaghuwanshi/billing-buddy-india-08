@@ -4,4 +4,5 @@ export interface ScannedProductInfo {
   name: string;
   price: number;
   expiryDate?: string;
+  quantity?: number;
 }

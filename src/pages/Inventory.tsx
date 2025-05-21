@@ -2,13 +2,12 @@
 import Layout from "@/components/layout/Layout";
 import ProductsTable from "@/components/inventory/ProductsTable";
 import { Button } from "@/components/ui/button";
-import { ScanBarcode, Plus } from "lucide-react";
+import { ScanBarcode } from "lucide-react";
 import { useState } from "react";
 import BarcodeDialog from "@/components/inventory/BarcodeDialog";
 import { mockProducts } from "@/data/mockData";
 import { Product } from "@/types";
 import { useToast } from "@/hooks/use-toast";
-import { v4 as uuidv4 } from "uuid";
 
 const Inventory = () => {
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
