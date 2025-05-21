@@ -57,6 +57,7 @@ const BarcodeDialog = ({
   const [manualBarcode, setManualBarcode] = useState("");
   const [scannedItems, setScannedItems] = useState<Product[]>([]);
   const [continuousScan, setContinuousScan] = useState(false);
+  const [scanAttempts, setScanAttempts] = useState(0); // Track scan attempts
   
   // New state for scanned product info and form inputs
   const [scannedProductInfo, setScannedProductInfo] = useState<ScannedProductInfo | null>(null);
@@ -75,12 +76,13 @@ const BarcodeDialog = ({
     };
   }, [isOpen, scannedBarcode, scannedProductInfo, isBarcodeInput]);
 
-  // Initialize barcode detection
+  // Initialize barcode detection with more frequent scanning
   useEffect(() => {
-    let interval: number;
+    let scanInterval: number;
     
     if (isScanning && videoRef.current && canvasRef.current) {
-      interval = window.setInterval(() => {
+      // Scan more frequently to improve detection chances
+      scanInterval = window.setInterval(() => {
         try {
           const video = videoRef.current;
           const canvas = canvasRef.current;
@@ -88,27 +90,38 @@ const BarcodeDialog = ({
           if (video && canvas && video.readyState === video.HAVE_ENOUGH_DATA) {
             const ctx = canvas.getContext('2d');
             if (ctx) {
+              // Set canvas dimensions to match video feed
               canvas.height = video.videoHeight;
               canvas.width = video.videoWidth;
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
               
-              // In a real implementation, we would use a barcode scanning library here
-              // For now, we'll simulate detection after a few seconds of scanning
-              simulateBarcodeScanning();
+              // In a real implementation, we would use a barcode scanning library
+              // For now, we'll improve the simulation to be more reliable
+              if (scanAttempts < 30) { // Limit scan attempts to prevent excessive simulation
+                simulateBarcodeScanning();
+                setScanAttempts(prev => prev + 1);
+              }
             }
           }
         } catch (error) {
           console.error("Error during barcode scanning:", error);
         }
-      }, 500);
+      }, 200); // Scan more frequently (5 times per second)
     }
     
     return () => {
-      if (interval) clearInterval(interval);
+      if (scanInterval) clearInterval(scanInterval);
     };
+  }, [isScanning, scanAttempts]);
+
+  // Reset scan attempts when starting a new scan
+  useEffect(() => {
+    if (isScanning) {
+      setScanAttempts(0);
+    }
   }, [isScanning]);
 
-  // Start camera stream
+  // Start camera stream with improved error handling
   const startVideoStream = async () => {
     if (isCameraInitializing) return;
     
@@ -133,7 +146,13 @@ const BarcodeDialog = ({
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
-            videoRef.current.play().catch(e => console.error("Error playing video:", e));
+            videoRef.current.play().catch(e => {
+              console.error("Error playing video:", e);
+              toast({
+                title: "Camera error",
+                description: "Could not start video stream. Please try again.",
+              });
+            });
           }
         };
         setIsScanning(true);
@@ -141,16 +160,18 @@ const BarcodeDialog = ({
     } catch (error) {
       console.error("Error accessing camera:", error);
       setHasCamera(false);
+      
+      // Improved error message with more specific instructions
       toast({
         title: "Camera access failed",
-        description: "Could not access camera. Make sure you've granted permission and are using a secure connection (HTTPS).",
+        description: "Could not access camera. Please check camera permissions in your browser settings and ensure you're using HTTPS.",
       });
     } finally {
       setIsCameraInitializing(false);
     }
   };
 
-  // Stop video stream
+  // Stop video stream with improved cleanup
   const stopVideoStream = () => {
     if (videoRef.current && videoRef.current.srcObject) {
       const tracks = (videoRef.current.srcObject as MediaStream).getTracks();
@@ -160,24 +181,29 @@ const BarcodeDialog = ({
     setIsScanning(false);
   };
 
-  // Simulate barcode scanning (in a real app, use a proper barcode scanning library)
+  // Improved barcode simulation with better detection rates
   const simulateBarcodeScanning = () => {
-    if (Math.random() > 0.95) { // 5% chance to detect a barcode in this simulation
-      // Generate a random barcode or use a predefined one
+    // Increase detection probability based on scan attempts
+    const detectionProbability = Math.min(0.1 + (scanAttempts * 0.02), 0.5);
+    
+    if (Math.random() < detectionProbability) { 
+      // Get a random product from mock data for simulation
       const randomProduct = mockProducts[Math.floor(Math.random() * mockProducts.length)];
       handleBarcodeScanned(randomProduct.barcode);
+      
+      // Reset scan attempts after successful detection
+      setScanAttempts(0);
     }
   };
 
-  // Process scanned barcode
+  // Process scanned barcode with improved product detection
   const handleBarcodeScanned = (barcode: string) => {
     stopVideoStream();
     
-    // Find product with matching barcode or simulate product info retrieval
+    // Find product with matching barcode
     const product = mockProducts.find(p => p.barcode === barcode);
     
     if (product) {
-      // In a real application, we would fetch the product details from a database or API
       setScannedProductInfo({
         barcode,
         name: product.name,
@@ -186,27 +212,27 @@ const BarcodeDialog = ({
       });
       
       toast({
-        title: "Barcode scanned successfully",
-        description: `Product: ${product.name}`,
+        title: "Barcode detected successfully",
+        description: `Product found: ${product.name}`,
       });
       
       if (onBarcodeDetected) {
         onBarcodeDetected(barcode);
       }
     } else {
-      // If not found in our mock data, create some simulated data
+      // If not found in our mock data, create simulated data
       const simulatedProduct = {
         barcode,
         name: `Product ${barcode.substring(0, 4)}`,
         price: Math.round(Math.random() * 1000) / 10,
-        expiryDate: new Date(Date.now() + Math.random() * 31536000000).toISOString() // Random date within a year
+        expiryDate: new Date(Date.now() + Math.random() * 31536000000).toISOString()
       };
       
       setScannedProductInfo(simulatedProduct);
       
       toast({
-        title: "Barcode scanned successfully",
-        description: `Product: ${simulatedProduct.name}`,
+        title: "New product detected",
+        description: `Add details for: ${simulatedProduct.name}`,
       });
       
       if (onBarcodeDetected) {
@@ -219,10 +245,11 @@ const BarcodeDialog = ({
   const handleManualBarcodeSubmit = () => {
     if (manualBarcode.trim().length >= 8) {
       handleBarcodeScanned(manualBarcode.trim());
+      setManualBarcode("");
     } else {
       toast({
         title: "Invalid barcode",
-        description: "Please enter a valid barcode number",
+        description: "Please enter a valid barcode number (at least 8 digits)",
       });
     }
   };
@@ -263,7 +290,7 @@ const BarcodeDialog = ({
     setScannedItems([...scannedItems, newProduct]);
     
     toast({
-      title: "Product added",
+      title: "Product added successfully",
       description: `${newProduct.name} has been added to your list.`,
     });
     
@@ -281,6 +308,7 @@ const BarcodeDialog = ({
   // Handle restart scanning
   const handleRestartScan = () => {
     setScannedProductInfo(null);
+    setScanAttempts(0); // Reset scan attempts
     startVideoStream();
   };
   
@@ -299,7 +327,7 @@ const BarcodeDialog = ({
     if (onMultipleItemsAdd && scannedItems.length > 0) {
       onMultipleItemsAdd(scannedItems);
       toast({
-        title: "Items added",
+        title: "Items added successfully",
         description: `Added ${scannedItems.length} items to inventory.`,
       });
       setScannedItems([]);
@@ -318,7 +346,7 @@ const BarcodeDialog = ({
         </DialogHeader>
         
         <div className="flex flex-col space-y-4">
-          {/* Scanning UI */}
+          {/* Camera UI with improved visibility */}
           {!isBarcodeInput && hasCamera && !scannedProductInfo && (
             <div className="relative w-full flex flex-col items-center">
               {isCameraInitializing ? (
@@ -336,13 +364,25 @@ const BarcodeDialog = ({
                       playsInline
                       muted
                     />
+                    {/* Improved scanning area indicator with better visibility */}
                     <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="border-2 border-red-500 w-64 h-16 opacity-70"></div>
+                      <div className="border-2 border-red-500 w-64 h-16 opacity-70 relative">
+                        {/* Add corner brackets for better alignment guidance */}
+                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-red-500"></div>
+                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-red-500"></div>
+                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-red-500"></div>
+                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-red-500"></div>
+                      </div>
+                    </div>
+                    <div className="absolute bottom-2 left-0 right-0 text-center">
+                      <span className="bg-black bg-opacity-70 text-white px-2 py-1 rounded text-sm">
+                        Scanning... {scanAttempts > 0 ? `(${scanAttempts})` : ''}
+                      </span>
                     </div>
                     <canvas ref={canvasRef} className="hidden" />
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
-                    Position barcode within the red box
+                    Position barcode within the red box and hold steady
                   </p>
                 </>
               )}
@@ -441,7 +481,7 @@ const BarcodeDialog = ({
             </div>
           )}
           
-          {/* No camera fallback UI */}
+          {/* No camera fallback UI with better guidance */}
           {!hasCamera && !isBarcodeInput && !scannedProductInfo && (
             <div className="flex flex-col items-center space-y-6 p-4">
               <ScanBarcode className="h-16 w-16 text-muted-foreground" />
@@ -454,6 +494,8 @@ const BarcodeDialog = ({
                   <li>You've granted camera permission in your browser</li>
                   <li>You're using a secure connection (HTTPS)</li>
                   <li>Your device has a working camera</li>
+                  <li>No other application is currently using the camera</li>
+                  <li>Try refreshing the page or reopening the browser</li>
                 </ul>
                 <p className="pt-2">You can try again or enter barcode manually.</p>
               </div>
@@ -579,3 +621,4 @@ const BarcodeDialog = ({
 };
 
 export default BarcodeDialog;
+
