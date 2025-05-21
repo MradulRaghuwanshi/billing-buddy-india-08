@@ -1,4 +1,3 @@
-
 import { useState, useRef, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
@@ -93,7 +92,12 @@ const BarcodeDialog = ({
               // Set canvas dimensions to match video feed
               canvas.height = video.videoHeight;
               canvas.width = video.videoWidth;
+              
+              // Draw the video feed on the canvas
               ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+              
+              // Display the canvas containing the video feed
+              canvas.style.display = 'block';
               
               // In a real implementation, we would use a barcode scanning library
               // For now, we'll improve the simulation to be more reliable
@@ -121,7 +125,7 @@ const BarcodeDialog = ({
     }
   }, [isScanning]);
 
-  // Start camera stream with improved error handling
+  // Start camera stream with improved error handling and display setup
   const startVideoStream = async () => {
     if (isCameraInitializing) return;
     
@@ -130,7 +134,7 @@ const BarcodeDialog = ({
     try {
       const constraints = {
         video: {
-          facingMode: "environment",
+          facingMode: "environment", // Use the rear camera on mobile devices
           width: { ideal: 1280 },
           height: { ideal: 720 }
         },
@@ -146,22 +150,30 @@ const BarcodeDialog = ({
         videoRef.current.srcObject = stream;
         videoRef.current.onloadedmetadata = () => {
           if (videoRef.current) {
-            videoRef.current.play().catch(e => {
-              console.error("Error playing video:", e);
-              toast({
-                title: "Camera error",
-                description: "Could not start video stream. Please try again.",
+            videoRef.current.play()
+              .then(() => {
+                console.log("Camera started successfully");
+                // Make video visible and ensure it's properly displayed
+                if (videoRef.current) {
+                  videoRef.current.style.display = 'block';
+                  videoRef.current.style.width = '100%';
+                }
+                setIsScanning(true);
+              })
+              .catch(e => {
+                console.error("Error playing video:", e);
+                toast({
+                  title: "Camera error",
+                  description: "Could not start video stream. Please try again.",
+                });
               });
-            });
           }
         };
-        setIsScanning(true);
       }
     } catch (error) {
       console.error("Error accessing camera:", error);
       setHasCamera(false);
       
-      // Improved error message with more specific instructions
       toast({
         title: "Camera access failed",
         description: "Could not access camera. Please check camera permissions in your browser settings and ensure you're using HTTPS.",
@@ -346,7 +358,7 @@ const BarcodeDialog = ({
         </DialogHeader>
         
         <div className="flex flex-col space-y-4">
-          {/* Camera UI with improved visibility */}
+          {/* Camera UI with improved visibility and alignment guide */}
           {!isBarcodeInput && hasCamera && !scannedProductInfo && (
             <div className="relative w-full flex flex-col items-center">
               {isCameraInitializing ? (
@@ -356,30 +368,40 @@ const BarcodeDialog = ({
                 </div>
               ) : (
                 <>
-                  <div className="relative rounded-lg overflow-hidden border-2 border-primary bg-black" style={{ width: "100%", height: "250px" }}>
+                  <div className="relative rounded-lg overflow-hidden border-2 border-primary bg-black" style={{ width: "100%", height: "300px" }}>
                     <video 
                       ref={videoRef}
-                      className="absolute top-0 left-0 w-full h-full object-cover"
+                      className="absolute top-0 left-0 w-full h-full object-cover z-10"
                       autoPlay
                       playsInline
                       muted
                     />
-                    {/* Improved scanning area indicator with better visibility */}
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="border-2 border-red-500 w-64 h-16 opacity-70 relative">
-                        {/* Add corner brackets for better alignment guidance */}
-                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-red-500"></div>
-                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-red-500"></div>
-                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-red-500"></div>
-                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-red-500"></div>
+                    {/* Visible canvas that shows the camera feed for processing */}
+                    <canvas 
+                      ref={canvasRef} 
+                      className="absolute top-0 left-0 w-full h-full object-cover z-20"
+                      style={{ display: "block" }} 
+                    />
+                    {/* Improved alignment guide with better contrast */}
+                    <div className="absolute inset-0 flex items-center justify-center z-30 pointer-events-none">
+                      {/* Horizontal alignment line */}
+                      <div className="absolute left-0 right-0 h-0.5 bg-red-600"></div>
+                      {/* Vertical alignment line */}
+                      <div className="absolute top-0 bottom-0 w-0.5 bg-red-600"></div>
+                      {/* Scanning target box with high contrast */}
+                      <div className="border-2 border-red-600 w-64 h-16 opacity-80 relative">
+                        {/* Corner brackets for better alignment guidance */}
+                        <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2 border-red-600"></div>
+                        <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2 border-red-600"></div>
+                        <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2 border-red-600"></div>
+                        <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2 border-red-600"></div>
                       </div>
                     </div>
-                    <div className="absolute bottom-2 left-0 right-0 text-center">
+                    <div className="absolute bottom-2 left-0 right-0 text-center z-40">
                       <span className="bg-black bg-opacity-70 text-white px-2 py-1 rounded text-sm">
-                        Scanning... {scanAttempts > 0 ? `(${scanAttempts})` : ''}
+                        Align barcode within the red box {scanAttempts > 0 ? `(${scanAttempts})` : ''}
                       </span>
                     </div>
-                    <canvas ref={canvasRef} className="hidden" />
                   </div>
                   <p className="text-sm text-muted-foreground mt-2">
                     Position barcode within the red box and hold steady
@@ -388,7 +410,7 @@ const BarcodeDialog = ({
               )}
             </div>
           )}
-          
+
           {/* Product info form */}
           {scannedProductInfo && (
             <div className="border rounded-lg p-4 space-y-4">
@@ -621,4 +643,3 @@ const BarcodeDialog = ({
 };
 
 export default BarcodeDialog;
-
