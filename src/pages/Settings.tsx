@@ -1,3 +1,4 @@
+
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,7 +11,7 @@ import { useLanguage, languages, Language } from "@/contexts/LanguageContext";
 import { useToast } from "@/hooks/use-toast";
 
 const Settings = () => {
-  const { currentLanguage, setLanguage, getLanguageDisplayName } = useLanguage();
+  const { currentLanguage, setLanguage, getLanguageDisplayName, t } = useLanguage();
   const { toast } = useToast();
 
   const handleLanguageChange = (newLanguage: Language) => {
@@ -24,12 +25,12 @@ const Settings = () => {
   return (
     <Layout>
       <div className="space-y-6">
-        <h1 className="text-2xl font-bold">Settings</h1>
+        <h1 className="text-2xl font-bold">{t('settings')}</h1>
 
         <Tabs defaultValue="general">
           <TabsList className="mb-6">
             <TabsTrigger value="general">General</TabsTrigger>
-            <TabsTrigger value="language">Language</TabsTrigger>
+            <TabsTrigger value="language">{t('languageSettings')}</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -37,7 +38,7 @@ const Settings = () => {
           <TabsContent value="general">
             <Card>
               <CardHeader>
-                <CardTitle>Store Information</CardTitle>
+                <CardTitle>{t('storeInformation')}</CardTitle>
                 <CardDescription>
                   Update your store details and information
                 </CardDescription>
@@ -79,7 +80,7 @@ const Settings = () => {
                   <Input id="gst" defaultValue="22AAAAA0000A1Z5" />
                 </div>
 
-                <Button>Save Changes</Button>
+                <Button>{t('save')} Changes</Button>
               </CardContent>
             </Card>
           </TabsContent>
@@ -87,14 +88,14 @@ const Settings = () => {
           <TabsContent value="language">
             <Card>
               <CardHeader>
-                <CardTitle>Language Settings</CardTitle>
+                <CardTitle>{t('languageSettings')}</CardTitle>
                 <CardDescription>
                   Choose your preferred language for the system interface
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="space-y-3">
-                  <Label htmlFor="language-select">System Language</Label>
+                  <Label htmlFor="language-select">{t('systemLanguage')}</Label>
                   <Select value={currentLanguage} onValueChange={handleLanguageChange}>
                     <SelectTrigger className="w-full">
                       <SelectValue placeholder="Select a language" />
@@ -113,14 +114,13 @@ const Settings = () => {
                     </SelectContent>
                   </Select>
                   <p className="text-sm text-muted-foreground">
-                    Current language: {getLanguageDisplayName(currentLanguage)}
+                    {t('currentLanguage')}: {getLanguageDisplayName(currentLanguage)}
                   </p>
                 </div>
                 
                 <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
                   <p className="text-sm text-blue-800">
-                    <strong>Note:</strong> Language changes will be applied immediately to the interface. 
-                    Some text elements may require a page refresh to fully update.
+                    <strong>Note:</strong> {t('languageNote')}
                   </p>
                 </div>
               </CardContent>

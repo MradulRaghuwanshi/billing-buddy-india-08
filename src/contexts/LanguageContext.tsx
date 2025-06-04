@@ -1,5 +1,6 @@
 
 import React, { createContext, useContext, useState, ReactNode } from 'react';
+import { translations, TranslationKey } from '@/data/translations';
 
 export type Language = 
   | 'english'
@@ -52,6 +53,7 @@ interface LanguageContextType {
   currentLanguage: Language;
   setLanguage: (language: Language) => void;
   getLanguageDisplayName: (code: Language) => string;
+  t: (key: TranslationKey) => string;
 }
 
 const LanguageContext = createContext<LanguageContextType | undefined>(undefined);
@@ -81,6 +83,11 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
     return language ? `${language.name} (${language.nativeName})` : code;
   };
 
+  const t = (key: TranslationKey): string => {
+    const languageTranslations = translations[currentLanguage];
+    return languageTranslations?.[key] || translations.english[key] || key;
+  };
+
   // Load saved language on mount
   React.useEffect(() => {
     const savedLanguage = localStorage.getItem('selectedLanguage') as Language;
@@ -90,7 +97,7 @@ export const LanguageProvider = ({ children }: LanguageProviderProps) => {
   }, []);
 
   return (
-    <LanguageContext.Provider value={{ currentLanguage, setLanguage, getLanguageDisplayName }}>
+    <LanguageContext.Provider value={{ currentLanguage, setLanguage, getLanguageDisplayName, t }}>
       {children}
     </LanguageContext.Provider>
   );
