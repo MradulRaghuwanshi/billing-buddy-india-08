@@ -1,4 +1,3 @@
-
 import Layout from "@/components/layout/Layout";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,8 +5,22 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Switch } from "@/components/ui/switch";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useLanguage, languages, Language } from "@/contexts/LanguageContext";
+import { useToast } from "@/hooks/use-toast";
 
 const Settings = () => {
+  const { currentLanguage, setLanguage, getLanguageDisplayName } = useLanguage();
+  const { toast } = useToast();
+
+  const handleLanguageChange = (newLanguage: Language) => {
+    setLanguage(newLanguage);
+    toast({
+      title: "Language Updated",
+      description: `System language changed to ${getLanguageDisplayName(newLanguage)}`,
+    });
+  };
+
   return (
     <Layout>
       <div className="space-y-6">
@@ -16,6 +29,7 @@ const Settings = () => {
         <Tabs defaultValue="general">
           <TabsList className="mb-6">
             <TabsTrigger value="general">General</TabsTrigger>
+            <TabsTrigger value="language">Language</TabsTrigger>
             <TabsTrigger value="billing">Billing</TabsTrigger>
             <TabsTrigger value="notifications">Notifications</TabsTrigger>
           </TabsList>
@@ -66,6 +80,49 @@ const Settings = () => {
                 </div>
 
                 <Button>Save Changes</Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+          
+          <TabsContent value="language">
+            <Card>
+              <CardHeader>
+                <CardTitle>Language Settings</CardTitle>
+                <CardDescription>
+                  Choose your preferred language for the system interface
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-3">
+                  <Label htmlFor="language-select">System Language</Label>
+                  <Select value={currentLanguage} onValueChange={handleLanguageChange}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Select a language" />
+                    </SelectTrigger>
+                    <SelectContent className="max-h-60">
+                      {languages.map((language) => (
+                        <SelectItem key={language.code} value={language.code}>
+                          <div className="flex items-center space-x-2">
+                            <span>{language.name}</span>
+                            <span className="text-sm text-muted-foreground">
+                              ({language.nativeName})
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  <p className="text-sm text-muted-foreground">
+                    Current language: {getLanguageDisplayName(currentLanguage)}
+                  </p>
+                </div>
+                
+                <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                  <p className="text-sm text-blue-800">
+                    <strong>Note:</strong> Language changes will be applied immediately to the interface. 
+                    Some text elements may require a page refresh to fully update.
+                  </p>
+                </div>
               </CardContent>
             </Card>
           </TabsContent>
