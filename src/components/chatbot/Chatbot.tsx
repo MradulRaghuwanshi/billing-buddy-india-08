@@ -124,47 +124,48 @@ const Chatbot = () => {
       {!isOpen && (
         <Button
           onClick={() => setIsOpen(true)}
-          className="fixed bottom-6 right-6 h-16 w-16 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-xl hover:shadow-2xl transition-all duration-300 transform hover:scale-105 z-50"
+          className="fixed bottom-6 right-6 h-14 w-14 rounded-full bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-105 z-50"
           size="icon"
         >
-          <MessageCircle className="h-7 w-7 text-white" />
+          <MessageCircle className="h-6 w-6 text-white" />
         </Button>
       )}
 
       {/* Chat Window */}
       {isOpen && (
-        <Card className="fixed bottom-6 right-6 w-96 h-[500px] shadow-2xl z-50 flex flex-col border-0 overflow-hidden animate-fade-in">
-          <CardHeader className="flex flex-row items-center justify-between py-4 px-5 bg-gradient-to-r from-blue-600 to-blue-700 text-white">
-            <div className="flex items-center gap-3">
+        <div className="fixed bottom-6 right-6 w-80 h-96 shadow-2xl z-50 bg-white rounded-lg border border-gray-200 flex flex-col overflow-hidden">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 bg-blue-600 text-white rounded-t-lg">
+            <div className="flex items-center gap-2">
               <div className="h-8 w-8 rounded-full bg-white/20 flex items-center justify-center">
-                <Bot className="h-5 w-5" />
+                <Bot className="h-4 w-4" />
               </div>
-              <CardTitle className="text-lg font-semibold">POS Assistant</CardTitle>
+              <h3 className="font-semibold text-sm">POS Assistant</h3>
             </div>
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsOpen(false)}
-              className="h-8 w-8 text-white hover:bg-white/20 transition-colors duration-200"
+              className="h-8 w-8 text-white hover:bg-white/20 transition-colors"
             >
-              <X className="h-5 w-5" />
+              <X className="h-4 w-4" />
             </Button>
-          </CardHeader>
+          </div>
           
-          <CardContent className="flex-1 flex flex-col p-0 bg-gray-50">
-            {/* Messages Area with Custom Scrolling */}
-            <ScrollArea className="flex-1 px-4 py-3">
-              <div className="space-y-4">
+          {/* Messages Area with Proper Scrolling */}
+          <div className="flex-1 flex flex-col min-h-0">
+            <ScrollArea className="flex-1 p-3">
+              <div className="space-y-3 pb-2">
                 {messages.map((message) => (
                   <div
                     key={message.id}
-                    className={`flex ${message.isBot ? 'justify-start' : 'justify-end'} animate-fade-in`}
+                    className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
                   >
                     <div
-                      className={`max-w-[85%] p-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
+                      className={`max-w-[80%] p-2.5 rounded-lg text-xs leading-relaxed ${
                         message.isBot
-                          ? 'bg-white text-gray-800 border border-gray-200'
-                          : 'bg-gradient-to-r from-blue-600 to-blue-700 text-white'
+                          ? 'bg-gray-100 text-gray-800 border border-gray-200'
+                          : 'bg-blue-600 text-white'
                       }`}
                     >
                       {message.text}
@@ -176,27 +177,27 @@ const Chatbot = () => {
             </ScrollArea>
 
             {/* Input Area */}
-            <div className="border-t border-gray-200 p-4 bg-white">
-              <div className="flex gap-3">
+            <div className="border-t border-gray-200 p-3 bg-gray-50">
+              <div className="flex gap-2">
                 <Input
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={handleKeyPress}
-                  placeholder="Ask me anything about the POS..."
-                  className="flex-1 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-xl"
+                  placeholder="Ask me anything..."
+                  className="flex-1 text-xs h-8 border-gray-300 focus:border-blue-500 focus:ring-1 focus:ring-blue-500"
                 />
                 <Button
                   onClick={handleSendMessage}
                   size="icon"
                   disabled={!inputValue.trim()}
-                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 rounded-xl transition-all duration-200 disabled:opacity-50"
+                  className="bg-blue-600 hover:bg-blue-700 h-8 w-8 transition-colors disabled:opacity-50"
                 >
-                  <Send className="h-4 w-4" />
+                  <Send className="h-3 w-3" />
                 </Button>
               </div>
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       )}
     </>
   );
