@@ -2,6 +2,7 @@
 import { ReactNode, useState } from "react";
 import Sidebar from "./Sidebar";
 import Navbar from "./Navbar";
+import Chatbot from "../chatbot/Chatbot";
 import { useToast } from "@/hooks/use-toast";
 
 interface LayoutProps {
@@ -25,6 +26,7 @@ const Layout = ({ children }: LayoutProps) => {
           {children}
         </main>
       </div>
+      <Chatbot />
     </div>
   );
 };
