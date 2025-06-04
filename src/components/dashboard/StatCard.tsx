@@ -3,6 +3,7 @@ import { ReactNode } from "react";
 import { Card } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface StatCardProps {
   title: string;
@@ -14,6 +15,8 @@ interface StatCardProps {
 }
 
 const StatCard = ({ title, value, icon, trend, change, className }: StatCardProps) => {
+  const { t } = useLanguage();
+  
   return (
     <Card className={cn("p-5", className)}>
       <div className="flex items-center justify-between">
@@ -36,9 +39,9 @@ const StatCard = ({ title, value, icon, trend, change, className }: StatCardProp
                     : "text-gray-500"
                 )}
               >
-                {change}% {trend === "up" ? "increase" : trend === "down" ? "decrease" : ""}
+                {change}% {trend === "up" ? t('increase') : trend === "down" ? t('decrease') : ""}
               </span>
-              <span className="ml-1 text-gray-500">vs last month</span>
+              <span className="ml-1 text-gray-500">{t('vsLastMonth')}</span>
             </div>
           )}
         </div>

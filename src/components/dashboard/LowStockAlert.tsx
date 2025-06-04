@@ -2,8 +2,11 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { mockProducts } from "@/data/mockData";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const LowStockAlert = () => {
+  const { t } = useLanguage();
+  
   // Filter products with low stock (less than 20)
   const lowStockProducts = mockProducts.filter(
     (product) => product.quantity < 20
@@ -12,7 +15,7 @@ const LowStockAlert = () => {
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle>Low Stock Alerts</CardTitle>
+        <CardTitle>{t('lowStockAlert')}</CardTitle>
       </CardHeader>
       <CardContent className="px-0">
         {lowStockProducts.length > 0 ? (
@@ -26,9 +29,9 @@ const LowStockAlert = () => {
                   </div>
                   <div className="flex items-center">
                     <Badge variant="outline" className="mr-2 border-amber-500 text-amber-500">
-                      Low Stock
+                      {t('lowStock')}
                     </Badge>
-                    <span className="font-medium">{product.quantity} left</span>
+                    <span className="font-medium">{product.quantity} {t('leftInStock')}</span>
                   </div>
                 </div>
               </li>
@@ -36,7 +39,7 @@ const LowStockAlert = () => {
           </ul>
         ) : (
           <div className="px-6 py-4 text-center">
-            <p className="text-gray-500">No low stock items</p>
+            <p className="text-gray-500">{t('noLowStockItems')}</p>
           </div>
         )}
       </CardContent>

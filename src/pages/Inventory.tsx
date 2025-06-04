@@ -8,11 +8,13 @@ import BarcodeDialog from "@/components/inventory/BarcodeDialog";
 import { mockProducts } from "@/data/mockData";
 import { Product } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Inventory = () => {
   const [isBarcodeDialogOpen, setIsBarcodeDialogOpen] = useState(false);
   const [scannedBarcode, setScannedBarcode] = useState("");
   const { toast } = useToast();
+  const { t } = useLanguage();
 
   const handleScanBarcode = () => {
     // Simulate barcode scanning
@@ -20,16 +22,16 @@ const Inventory = () => {
     setScannedBarcode(randomBarcode);
     
     toast({
-      title: "Barcode scanned",
-      description: `Barcode ${randomBarcode} detected.`
+      title: t('barcodeScanned'),
+      description: t('barcodeDetected').replace('{{barcode}}', randomBarcode)
     });
   };
 
   const handleMultipleItemsAdd = (products: Product[]) => {
     // In a real application, this would update the inventory in the database
     toast({
-      title: "Products added to inventory",
-      description: `${products.length} products have been added successfully.`
+      title: t('productsAddedToInventory'),
+      description: t('productsAddedSuccessfully').replace('{{count}}', products.length.toString())
     });
   };
 
@@ -38,8 +40,8 @@ const Inventory = () => {
       <div className="space-y-6">
         <div className="flex justify-between items-center">
           <div>
-            <h1 className="text-2xl font-bold">Inventory Management</h1>
-            <p className="text-gray-500">Manage your products and stock levels</p>
+            <h1 className="text-2xl font-bold">{t('inventoryManagement')}</h1>
+            <p className="text-gray-500">{t('manageProducts')}</p>
           </div>
           <div className="flex space-x-2">
             <Button 
@@ -48,7 +50,7 @@ const Inventory = () => {
               onClick={() => setIsBarcodeDialogOpen(true)}
             >
               <ScanBarcode className="h-4 w-4" />
-              Scan Barcode
+              {t('scanBarcode')}
             </Button>
           </div>
         </div>

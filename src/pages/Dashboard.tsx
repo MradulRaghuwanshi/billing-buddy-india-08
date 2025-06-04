@@ -11,9 +11,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { mockProducts } from "@/data/mockData";
 import { Link } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const Dashboard = () => {
   const { toast } = useToast();
+  const { t } = useLanguage();
   
   // Filter low stock products
   const lowStockProducts = mockProducts.filter((product) => product.quantity < 20);
@@ -22,7 +24,7 @@ const Dashboard = () => {
     <Layout>
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row justify-between items-center gap-4">
-          <h1 className="text-2xl font-bold">Dashboard</h1>
+          <h1 className="text-2xl font-bold">{t('dashboard')}</h1>
         </div>
 
         {/* Low Stock Items Quick View */}
@@ -31,10 +33,10 @@ const Dashboard = () => {
             <div className="flex justify-between items-center">
               <CardTitle className="flex items-center">
                 <Package className="h-5 w-5 text-amber-600 mr-2" />
-                Low Stock Items
+                {t('lowStockItems')}
               </CardTitle>
               <Button variant="outline" size="sm" asChild>
-                <Link to="/inventory">View All Inventory</Link>
+                <Link to="/inventory">{t('viewAllInventory')}</Link>
               </Button>
             </div>
           </CardHeader>
@@ -54,7 +56,7 @@ const Dashboard = () => {
                       <p className={`font-bold ${
                         product.quantity < 10 ? "text-red-500" : "text-amber-500"
                       }`}>
-                        {product.quantity} left
+                        {product.quantity} {t('leftInStock')}
                       </p>
                       <p className="text-sm">₹{product.price}</p>
                     </div>
@@ -62,7 +64,7 @@ const Dashboard = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-center py-4">No low stock items found</p>
+              <p className="text-center py-4">{t('noLowStockItems')}</p>
             )}
           </CardContent>
         </Card>
@@ -70,28 +72,28 @@ const Dashboard = () => {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="Today's Sales"
+            title={t('todaysSales')}
             value="₹12,500"
             icon={<IndianRupee className="h-5 w-5 text-blue-600" />}
             trend="up"
             change={8}
           />
           <StatCard
-            title="Total Products"
+            title={t('totalProducts')}
             value="124"
             icon={<Archive className="h-5 w-5 text-green-600" />}
             trend="up"
             change={12}
           />
           <StatCard
-            title="Total Transactions"
+            title={t('totalTransactions')}
             value="48"
             icon={<ShoppingCart className="h-5 w-5 text-amber-600" />}
             trend="down"
             change={3}
           />
           <StatCard
-            title="Low Stock Items"
+            title={t('lowStockItems')}
             value={lowStockProducts.length.toString()}
             icon={<ChartBar className="h-5 w-5 text-red-600" />}
           />

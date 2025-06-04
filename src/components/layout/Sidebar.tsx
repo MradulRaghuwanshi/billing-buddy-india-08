@@ -1,4 +1,3 @@
-
 import { Link, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { 
@@ -11,6 +10,7 @@ import {
   X,
   Menu
 } from "lucide-react";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 interface SidebarProps {
   isOpen: boolean;
@@ -19,14 +19,15 @@ interface SidebarProps {
 
 const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
   const location = useLocation();
+  const { t } = useLanguage();
   
   const navigation = [
-    { name: "Dashboard", href: "/", icon: Home },
-    { name: "Billing", href: "/billing", icon: Barcode },
-    { name: "Inventory", href: "/inventory", icon: Archive },
-    { name: "Reports", href: "/reports", icon: ChartBar },
-    { name: "User Management", href: "/users", icon: Users },
-    { name: "Settings", href: "/settings", icon: Settings },
+    { name: t('dashboard'), href: "/", icon: Home },
+    { name: t('billing'), href: "/billing", icon: Barcode },
+    { name: t('inventory'), href: "/inventory", icon: Archive },
+    { name: t('reports'), href: "/reports", icon: ChartBar },
+    { name: t('users'), href: "/users", icon: Users },
+    { name: t('settings'), href: "/settings", icon: Settings },
   ];
 
   return (
@@ -66,7 +67,7 @@ const Sidebar = ({ isOpen, toggleSidebar }: SidebarProps) => {
               const isActive = location.pathname === item.href;
               return (
                 <Link
-                  key={item.name}
+                  key={item.href}
                   to={item.href}
                   className={cn(
                     "flex items-center px-4 py-3 text-sm font-medium rounded-md transition-colors",

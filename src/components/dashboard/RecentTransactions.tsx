@@ -1,12 +1,15 @@
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { mockBills } from "@/data/mockData";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const RecentTransactions = () => {
+  const { t } = useLanguage();
+  
   return (
     <Card>
       <CardHeader className="pb-3">
-        <CardTitle>Recent Transactions</CardTitle>
+        <CardTitle>{t('recentTransactions')}</CardTitle>
       </CardHeader>
       <CardContent className="px-0">
         <ul className="divide-y divide-gray-200">
@@ -26,7 +29,7 @@ const RecentTransactions = () => {
                 </div>
                 <div className="text-right">
                   <p className="font-medium text-gray-900">₹{bill.total.toLocaleString('en-IN')}</p>
-                  <p className="text-sm text-gray-500">{bill.items.length} items</p>
+                  <p className="text-sm text-gray-500">{bill.items.length} {t('items')}</p>
                 </div>
               </div>
             </li>
@@ -34,7 +37,7 @@ const RecentTransactions = () => {
         </ul>
         <div className="px-6 py-4">
           <button className="w-full py-2 px-3 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50">
-            View All Transactions
+            {t('viewAllTransactions')}
           </button>
         </div>
       </CardContent>

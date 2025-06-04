@@ -12,9 +12,11 @@ import {
   ResponsiveContainer,
   Legend
 } from "recharts";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 const SalesChart = () => {
   const [data, setData] = useState(dailySales);
+  const { t } = useLanguage();
   
   useEffect(() => {
     // Format the data for the chart
@@ -34,7 +36,7 @@ const SalesChart = () => {
   return (
     <Card className="col-span-3">
       <CardHeader>
-        <CardTitle>Sales Overview</CardTitle>
+        <CardTitle>{t('salesOverview')}</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-80 w-full">
